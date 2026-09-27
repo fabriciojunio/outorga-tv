@@ -54,6 +54,9 @@ export function Cabecalho() {
             <Link href="/casa" className={caminho.startsWith('/casa') ? 'ativo' : ''}>
               Em casa
             </Link>
+            <Link href="/baixar" className={caminho.startsWith('/baixar') ? 'ativo' : ''}>
+              Baixar apps
+            </Link>
             {operador && (
               <Link href="/painel" className={caminho.startsWith('/painel') ? 'ativo' : ''}>
                 Painel

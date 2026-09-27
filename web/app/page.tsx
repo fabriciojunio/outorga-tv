@@ -63,10 +63,26 @@ export default function Vitrine() {
               Já sou assinante
             </Link>
           </div>
+
+          {/* As três portas deste endereço, para ninguém cair no lugar errado. */}
+          <nav className="entradas" aria-label="Por onde começar">
+            <Link href="/casa" className="entrada">
+              <strong>Entrar no Outorga TV da família</strong>
+              <span>Novelas, filmes, canais ao vivo e jogos. Entre com o seu número e a sua senha.</span>
+            </Link>
+            <Link href="/baixar" className="entrada">
+              <strong>Baixar os aplicativos</strong>
+              <span>Celular, TV com Android e computador, com o passo a passo de cada um.</span>
+            </Link>
+            <a href="#catalogo" className="entrada">
+              <strong>Conhecer a plataforma</strong>
+              <span>O serviço de streaming para quem já tem conteúdo e direito de exibição.</span>
+            </a>
+          </nav>
         </div>
       </section>
 
-      <section className="secao">
+      <section className="secao" id="catalogo">
         <div className="envolucro">
           <div className="espalha" style={{ marginBottom: 20 }}>
             <h2 className="titulo-secao" style={{ margin: 0 }}>

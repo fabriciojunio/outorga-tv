@@ -70,7 +70,7 @@ test('todas as páginas do menu abrem', async ({ page }, info) => {
 test('a página não rola para o lado no celular', async ({ page }, info) => {
   test.skip(info.project.name !== 'celular');
   await entrar(page);
-  for (const caminho of ['/casa', '/casa/ao-vivo', '/casa/esportes', '/casa/serie/1396']) {
+  for (const caminho of ['/casa', '/casa/ao-vivo', '/casa/esportes', '/casa/serie/1396', '/', '/baixar']) {
     await page.goto(caminho);
     const larguras = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
     expect(larguras[0], `${caminho} mais largo que a tela`).toBeLessThanOrEqual(larguras[1]! + 1);
@@ -170,7 +170,8 @@ test('canal ao vivo toca dentro do app', async ({ page }, info) => {
   const canais = page.locator('.canal');
   test.skip((await canais.count()) === 0, 'nenhum canal ao vivo neste momento');
   await canais.first().click();
-  await expect(page.locator('iframe.quadro-ao-vivo')).toBeVisible();
+  // Toca embutido, ou (transmissão que proíbe) oferece abrir no YouTube.
+  await expect(page.locator('iframe.quadro-ao-vivo, .aviso-bloqueado').first()).toBeVisible();
   await foto(page, 'canal', info.project.name);
 });
 

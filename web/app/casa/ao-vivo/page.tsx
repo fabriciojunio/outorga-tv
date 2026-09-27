@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function AoVivo() {
   const lista = await transmissoes();
-  const noAr = lista.filter((t) => t.video);
+  const noAr = lista.filter((t) => t.video && !t.bloqueado);
+  const soNoYoutube = lista.filter((t) => t.video && t.bloqueado);
   const fora = lista.filter((t) => !t.video);
 
   return (
@@ -30,6 +31,21 @@ export default async function AoVivo() {
             </Link>
           ))}
         </div>
+        {soNoYoutube.length > 0 && (
+          <>
+            <h3 className="titulo-secao" style={{ marginTop: 22 }}>
+              Ao vivo agora, mas só abrem no YouTube
+            </h3>
+            <div className="grade-emissoras">
+              {soNoYoutube.map((t) => (
+                <a key={t.canal} href={`https://www.youtube.com/watch?v=${t.video}`} target="_blank" rel="noreferrer" className="emissora">
+                  <strong>{t.nome}</strong>
+                  <span>{t.titulo?.replace(/^AO VIVO:?\s*/i, '')}</span>
+                </a>
+              ))}
+            </div>
+          </>
+        )}
         {fora.length > 0 && (
           <p className="apagado" style={{ marginTop: 14 }}>
             Fora do ar agora: {fora.map((t) => t.nome).join(', ')}. A lista se atualiza sozinha a cada 10 minutos.

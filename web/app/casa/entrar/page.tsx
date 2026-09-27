@@ -48,12 +48,24 @@ export default function Entrar() {
 
         <div className="campo">
           <label htmlFor="login">Número</label>
+          {/*
+            Na TV a pessoa digita no teclado da tela e aperta a tecla de
+            avançar dele. Aqui ela leva para a senha, em vez de tentar entrar
+            sem senha e mostrar erro.
+          */}
           <input
             id="login"
             inputMode="numeric"
             autoComplete="username"
+            enterKeyHint="next"
             value={login}
             onChange={(e) => setLogin(e.target.value.replace(/\s/g, ''))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !senha) {
+                e.preventDefault();
+                document.getElementById('senha')?.focus();
+              }
+            }}
             autoFocus
             required
           />
@@ -65,6 +77,7 @@ export default function Entrar() {
             id="senha"
             type={mostrar ? 'text' : 'password'}
             autoComplete="current-password"
+            enterKeyHint="go"
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}

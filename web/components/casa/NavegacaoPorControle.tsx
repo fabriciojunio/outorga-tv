@@ -28,7 +28,7 @@ function visivel(el: HTMLElement): boolean {
   return getComputedStyle(el).visibility !== 'hidden';
 }
 
-type Caixa = { left: number; right: number; top: number; bottom: number; cx: number; cy: number };
+export type Caixa = { left: number; right: number; top: number; bottom: number; cx: number; cy: number };
 
 function caixa(el: Element): Caixa {
   const r = el.getBoundingClientRect();
@@ -42,10 +42,18 @@ function caixa(el: Element): Caixa {
  * mais próxima naquela direção e, dentro dela, o mais alinhado.
  */
 function proximo(atual: Caixa, candidatos: HTMLElement[], direcao: string): HTMLElement | null {
+  return escolherNaDirecao(
+    atual,
+    candidatos.map((el) => ({ item: el, caixa: caixa(el) })),
+    direcao,
+  );
+}
+
+/** A escolha em si, sem DOM, para dar para testar com caixas de mentira. */
+export function escolherNaDirecao<T>(atual: Caixa, candidatos: { item: T; caixa: Caixa }[], direcao: string): T | null {
   const horizontal = direcao === 'esquerda' || direcao === 'direita';
   const medidos = candidatos
-    .map((el) => {
-      const c = caixa(el);
+    .map(({ item: el, caixa: c }) => {
       let principal: number;
       if (direcao === 'direita') principal = c.left - atual.right;
       else if (direcao === 'esquerda') principal = atual.left - c.right;

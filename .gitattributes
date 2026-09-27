@@ -1,0 +1,6 @@
+# Script de shell precisa de LF, senao o Linux do CI nao executa.
+android/gradlew text eol=lf
+*.sh text eol=lf
+*.png binary
+*.jar binary
+*.ico binary
