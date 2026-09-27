@@ -1,0 +1,77 @@
+plugins {
+    id 'com.android.application'
+}
+
+// A chave de assinatura nunca entra no repositório. Vem de variáveis de
+// ambiente (no CI, dos segredos do GitHub) ou de um arquivo fora do projeto.
+// Sem ela, o APK sai assinado com a chave de depuração: instala igual, só
+// não dá para publicar na Play Store.
+def chave = [
+    arquivo: System.getenv('OUTORGA_CHAVE_ARQUIVO'),
+    senha  : System.getenv('OUTORGA_CHAVE_SENHA'),
+    apelido: System.getenv('OUTORGA_CHAVE_APELIDO') ?: 'outorga',
+]
+def temChave = chave.arquivo && new File(chave.arquivo).exists() && chave.senha
+
+android {
+    namespace = 'br.com.outorga.casa'
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = 'br.com.outorga.casa'
+        // Android 6: cobre TV Box e celular antigo, que é o que tem em muita casa.
+        minSdk = 23
+        targetSdk = 35
+        versionCode = 1
+        versionName = '1.0.0'
+
+        // Endereço usado fora de casa, quando o PC não é achado na rede.
+        buildConfigField 'String', 'ENDERECO_INTERNET', '"https://outorga-tv.vercel.app"'
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    flavorDimensions = ['aparelho']
+    productFlavors {
+        celular {
+            dimension = 'aparelho'
+            manifestPlaceholders = [orientacao: 'unspecified']
+        }
+        tv {
+            dimension = 'aparelho'
+            applicationIdSuffix = '.tv'
+            manifestPlaceholders = [orientacao: 'landscape']
+        }
+    }
+
+    signingConfigs {
+        if (temChave) {
+            oficial {
+                storeFile = file(chave.arquivo)
+                storePassword = chave.senha
+                keyAlias = chave.apelido
+                keyPassword = chave.senha
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = false
+            signingConfig = temChave ? signingConfigs.oficial : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError = true
+        // O app é distribuído por APK, fora da Play Store.
+        disable += ['ExpiredTargetSdkVersion']
+    }
+}

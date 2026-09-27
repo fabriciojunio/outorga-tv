@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fora de casa, só https. O http fica liberado porque o PC de casa responde
+  por http no endereço da rede local, que muda de casa para casa e não dá para
+  listar aqui. O servidor da internet (Vercel) é sempre https.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

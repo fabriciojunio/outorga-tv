@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fundo escuro desde o primeiro quadro: sem clarão branco ao abrir na TV. -->
+    <style name="Tema" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/fundo</item>
+        <item name="android:colorPrimary">@color/fundo</item>
+        <item name="android:colorAccent">@color/ambar</item>
+        <item name="android:statusBarColor">@color/fundo</item>
+        <item name="android:navigationBarColor">@color/fundo</item>
+    </style>
+
+    <color name="fundo">#0D0F14</color>
+    <color name="ambar">#E6B800</color>
+    <color name="texto">#E9ECF2</color>
+    <color name="texto_fraco">#9AA4B5</color>
+</resources>

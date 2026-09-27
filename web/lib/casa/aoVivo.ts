@@ -13,9 +13,20 @@
 import { banco } from './banco';
 import { NO_APP, type CanalNoApp } from './canais';
 
-export type Transmissao = CanalNoApp & { video: string | null; titulo: string | null };
+export type Transmissao = CanalNoApp & { video: string | null; titulo: string | null; bloqueado?: boolean };
 
 const VALIDADE = 10 * 60_000;
+const BLOQUEIO = 6 * 60 * 60_000;
+
+/** Vídeo que o player avisou que não toca embutido. Vale por 6 horas. */
+export function marcarBloqueado(video: string) {
+  banco().gravarCache('ao-vivo-bloqueado', video, true);
+}
+
+function estaBloqueado(video: string): boolean {
+  const g = banco().lerCache<boolean>('ao-vivo-bloqueado', video);
+  return Boolean(g && Date.now() - g.atualizadoEm < BLOQUEIO);
+}
 
 async function consultar(canal: CanalNoApp): Promise<Transmissao> {
   try {
@@ -26,7 +37,10 @@ async function consultar(canal: CanalNoApp): Promise<Transmissao> {
     });
     const html = await resposta.text();
     const video = html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/)?.[1] ?? null;
-    const aoVivo = video !== null && /"isLive":true/.test(html);
+    // Live agendada também tem link canônico para o vídeo, mas ainda não
+    // começou: o YouTube marca como LIVE_STREAM_OFFLINE ou isUpcoming.
+    const agendada = /LIVE_STREAM_OFFLINE|"isUpcoming":true/.test(html);
+    const aoVivo = video !== null && /"isLive":true/.test(html) && !agendada;
     const titulo = html.match(/<meta name="title" content="([^"]*)"/)?.[1] ?? null;
     return { ...canal, video: aoVivo ? video : null, titulo: aoVivo ? decodificar(titulo) : null };
   } catch {
@@ -58,8 +72,16 @@ function atualizar(): Promise<Transmissao[]> {
   return emAndamento;
 }
 
-/** Mesma regra do acervo: guardado responde na hora e atualiza por trás. */
+/**
+ * Mesma regra do acervo: guardado responde na hora e atualiza por trás. O
+ * bloqueio é aplicado na leitura, para valer no minuto em que o player avisou.
+ */
 export async function transmissoes(): Promise<Transmissao[]> {
+  const lista = await transmissoesGuardadas();
+  return lista.map((t) => ({ ...t, bloqueado: t.video ? estaBloqueado(t.video) : false }));
+}
+
+async function transmissoesGuardadas(): Promise<Transmissao[]> {
   const guardado = banco().lerCache<Transmissao[]>('ao-vivo', 'youtube');
   // Se a lista de canais mudou no arquivo, o guardado não serve mais.
   const mesmaLista = guardado && guardado.dados.map((t) => t.canal).join() === NO_APP.map((c) => c.canal).join();

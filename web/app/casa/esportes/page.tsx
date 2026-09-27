@@ -46,7 +46,7 @@ function Placar({ jogo, noApp }: { jogo: Jogo; noApp: Transmissao | null }) {
 export default async function Esportes({ searchParams }: { searchParams: Promise<{ esporte?: string }> }) {
   const filtro = (await searchParams).esporte;
   const [{ lista, atualizadoEm }, aoVivo] = await Promise.all([jogos(), transmissoes().catch(() => [])]);
-  const noAr = aoVivo.filter((t) => t.video && t.titulo);
+  const noAr = aoVivo.filter((t) => t.video && t.titulo && !t.bloqueado);
 
   const escolhidos = lista.filter((j) => !filtro || j.esporte === filtro);
   const hoje = diaEmBrasilia(0);

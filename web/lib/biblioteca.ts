@@ -98,9 +98,12 @@ export function lerNome(arquivo: string): Pick<ArquivoDeVideo, 'nome' | 'ano' | 
     nome = nome.slice(0, marcaDeEpisodio.index);
   }
 
+  // O ano de lançamento é o último ano do nome, não o primeiro: em
+  // "Blade Runner 2049 2017" o 2049 é parte do título.
   let ano: number | null = null;
-  const marcaDeAno = nome.match(/[\s(\[]((?:19|20)\d{2})(?:[\s)\]]|$)/);
-  if (marcaDeAno && marcaDeAno.index !== undefined && marcaDeAno.index > 0) {
+  const anos = [...nome.matchAll(/[\s(\[]((?:19|20)\d{2})(?=[\s)\]]|$)/g)].filter((m) => (m.index ?? 0) > 0);
+  const marcaDeAno = anos[anos.length - 1];
+  if (marcaDeAno?.index !== undefined && marcaDeAno[1]) {
     ano = Number(marcaDeAno[1]);
     nome = nome.slice(0, marcaDeAno.index);
   }
