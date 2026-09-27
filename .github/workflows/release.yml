@@ -1,0 +1,102 @@
+name: Release
+
+# Criar a tag publica tudo de uma vez:
+#   git tag v1.0.1 && git push origin v1.0.1
+#
+# Sai um Release no GitHub com os dois APKs (celular e TV), assinados com a
+# mesma chave de sempre, e a imagem Docker do servidor de casa no GitHub
+# Container Registry. A página /baixar do site aponta para o Release mais
+# novo, então quem baixar depois já pega a versão nova.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  apks:
+    name: APKs assinados
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Sem a chave oficial, não publica: APK assinado com outra chave não
+      # atualiza o que já está instalado, e a família teria de desinstalar.
+      - name: Compilar com a chave oficial
+        working-directory: android
+        env:
+          OUTORGA_CHAVE_BASE64: ${{ secrets.OUTORGA_CHAVE_BASE64 }}
+          OUTORGA_CHAVE_SENHA: ${{ secrets.OUTORGA_CHAVE_SENHA }}
+        run: |
+          if [ -z "$OUTORGA_CHAVE_BASE64" ] || [ -z "$OUTORGA_CHAVE_SENHA" ]; then
+            echo "::error::Faltam os segredos OUTORGA_CHAVE_BASE64 e OUTORGA_CHAVE_SENHA."
+            exit 1
+          fi
+          echo "$OUTORGA_CHAVE_BASE64" | base64 -d > "$RUNNER_TEMP/chave.jks"
+          export OUTORGA_CHAVE_ARQUIVO="$RUNNER_TEMP/chave.jks"
+          versao="${GITHUB_REF_NAME#v}"
+          ./gradlew assembleRelease --no-daemon -PversaoDoApp="$versao"
+          mkdir -p ../saida
+          cp app/build/outputs/apk/celular/release/app-celular-release.apk ../saida/OutorgaTV-celular.apk
+          cp app/build/outputs/apk/tv/release/app-tv-release.apk ../saida/OutorgaTV-tv.apk
+
+      - name: Conferir a assinatura
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)
+          for apk in saida/*.apk; do
+            $apksigner verify --print-certs "$apk" | grep "Signer #1 certificate DN"
+          done
+
+      - name: Publicar o Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" saida/*.apk \
+            --title "Outorga TV $GITHUB_REF_NAME" \
+            --notes-file docs/RELEASE.md
+
+  imagem:
+    name: Imagem do servidor de casa
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # Tag v1.2.3 vira imagem 1.2.3, que é o que o Kubernetes e o Terraform
+      # esperam. Nunca latest: versão fixa é o que permite voltar atrás.
+      - id: etiquetas
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/outorga-casa
+          tags: type=semver,pattern={{version}}
+          flavor: latest=false
+
+      # amd64 para PC e NAS comuns, arm64 para Raspberry Pi e mini PC ARM.
+      - uses: docker/build-push-action@v6
+        with:
+          context: web
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.etiquetas.outputs.tags }}
+          labels: ${{ steps.etiquetas.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,21 +1,29 @@
 name: CI
 
+# Nada entra na main sem passar por aqui. Cada parte do sistema é provada do
+# jeito que roda de verdade: a API contra PostgreSQL, o modo de casa com o
+# servidor de pé tocando vídeo, a imagem Docker subindo e respondendo, e os
+# APKs compilados e conferidos.
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
-# Um push novo no mesmo branch cancela a execucao anterior. Sem isso, uma
-# sequencia de commits enfileira builds que ja nasceram desatualizados.
+# Um push novo no mesmo branch cancela a execução anterior. Sem isso, uma
+# sequência de commits enfileira builds que já nasceram desatualizados.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   backend:
-    name: Backend
+    name: API (Java 21)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: backend
@@ -32,7 +40,7 @@ jobs:
       - name: Testes e cobertura
         run: mvn -B verify
 
-      - name: Guardar o relatorio de cobertura
+      - name: Guardar o relatório de cobertura
         if: always()
         uses: actions/upload-artifact@v5
         with:
@@ -40,15 +48,16 @@ jobs:
           path: backend/target/site/jacoco/
           retention-days: 7
 
-      # O Dockerfile mora na raiz porque e de la que o Render constroi. Este
-      # passo precisa sair do backend, que e o diretorio padrao do job.
-      - name: Conferir a imagem Docker
+      # O Dockerfile mora na raiz porque é de lá que o Render constrói. Este
+      # passo precisa sair do backend, que é o diretório padrão do job.
+      - name: Conferir a imagem Docker da API
         working-directory: .
         run: docker build -t outorga-api:ci .
 
   web:
-    name: Web
+    name: Web (tipos, testes e build)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: web
@@ -57,22 +66,208 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Instalar dependencias
+      - name: Instalar dependências
         run: npm ci
 
       - name: Conferir os tipos
         run: npm run typecheck
 
+      - name: Testes de unidade
+        run: npm test
+
       - name: Build
         run: npm run build
 
-  seguranca:
-    name: Seguranca
+  casa-ponta-a-ponta:
+    name: Em casa, de ponta a ponta (celular, computador e TV)
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [web]
+    defaults:
+      run:
+        working-directory: web
+    env:
+      TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+      E2E_LOGIN: '1'
+      E2E_SENHA: senha-de-teste-do-ci
+      E2E_CANAL: chrome
+    steps:
+      - uses: actions/checkout@v5
+
+      # Sem a chave do TMDB os testes não têm catálogo para abrir. Em vez de
+      # passar verde sem testar nada, o trabalho para aqui e diz por quê.
+      - name: Conferir a chave do TMDB
+        run: |
+          if [ -z "$TMDB_TOKEN" ]; then
+            echo "::error::Cadastre o segredo TMDB_TOKEN no repositório para rodar este teste."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Instalar dependências, ffmpeg e o Chrome
+        run: |
+          npm ci
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          # O Chrome de verdade, e não o Chromium: só ele toca H.264.
+          npx playwright install --with-deps chrome
+
+      - name: Preparar vídeos, usuário e configuração
+        run: bash e2e/preparar.sh
+
+      - name: Subir o servidor
+        run: |
+          npm run build
+          nohup npx next start -H 0.0.0.0 -p 3000 > /tmp/servidor.log 2>&1 &
+          for tentativa in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:3000/api/casa/vivo > /dev/null; then echo "no ar"; exit 0; fi
+            sleep 2
+          done
+          cat /tmp/servidor.log
+          exit 1
+
+      - name: Rodar os testes de ponta a ponta
+        run: npx playwright test
+
+      - name: Guardar relatório e log quando falhar
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: relatorio-casa
+          path: |
+            web/test-results/
+            /tmp/servidor.log
+          retention-days: 7
+
+  imagem-casa:
+    name: Imagem Docker do servidor de casa
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [web]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Construir
+        uses: docker/build-push-action@v6
+        with:
+          context: web
+          load: true
+          tags: outorga-casa:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Sobe como vai rodar em casa: sistema de arquivos só leitura, vídeos
+      # por volume e sem privilégio. Precisa responder e ficar saudável.
+      - name: Subir o container e conferir
+        run: |
+          mkdir -p videos
+          docker run -d --name casa --read-only --tmpfs /tmp \
+            --security-opt no-new-privileges:true \
+            -v "$PWD/videos:/videos:ro" -v casa-dados:/dados -p 3000:3000 \
+            -e CASA_SEGREDO=segredo-do-ci-com-bem-mais-de-trinta-e-dois-caracteres \
+            outorga-casa:ci
+          for tentativa in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3000/api/casa/vivo | grep -q casa; then break; fi
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:3000/api/casa/vivo
+          test "$(docker exec casa id -u)" != "0" || { echo "::error::O container roda como root"; exit 1; }
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/casa/situacao)" = "401" \
+            || { echo "::error::A API de casa respondeu sem login"; exit 1; }
+          for tentativa in $(seq 1 20); do
+            estado=$(docker inspect -f '{{.State.Health.Status}}' casa)
+            [ "$estado" = "healthy" ] && { echo "saudável"; exit 0; }
+            sleep 3
+          done
+          docker logs casa
+          echo "::error::O container não ficou saudável"
+          exit 1
+
+  android:
+    name: Apps de Android (celular e TV)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # O lint trava o build em erro. Sem a chave oficial (em pull request de
+      # fora, por exemplo), o APK sai com a chave de depuração, e ainda assim
+      # instala e é conferido.
+      - name: Compilar e conferir
+        env:
+          OUTORGA_CHAVE_BASE64: ${{ secrets.OUTORGA_CHAVE_BASE64 }}
+          OUTORGA_CHAVE_SENHA: ${{ secrets.OUTORGA_CHAVE_SENHA }}
+        run: |
+          if [ -n "$OUTORGA_CHAVE_BASE64" ]; then
+            echo "$OUTORGA_CHAVE_BASE64" | base64 -d > "$RUNNER_TEMP/chave.jks"
+            export OUTORGA_CHAVE_ARQUIVO="$RUNNER_TEMP/chave.jks"
+          fi
+          ./gradlew assembleRelease lint --no-daemon
+
+      - name: Conferir o que os APKs pedem e onde aparecem
+        run: |
+          aapt=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | tail -1)
+          for apk in app/build/outputs/apk/*/release/*.apk; do
+            echo "== $apk"
+            $aapt dump badging "$apk" | grep -E "package:|leanback-launchable|launchable-activity|uses-permission"
+            $aapt dump badging "$apk" | grep -q "leanback-launchable-activity" \
+              || { echo "::error::$apk não aparece na tela da Android TV"; exit 1; }
+          done
+
+      - name: Guardar os APKs
+        uses: actions/upload-artifact@v5
+        with:
+          name: apks
+          path: android/app/build/outputs/apk/*/release/*.apk
+          retention-days: 14
+
+  infraestrutura:
+    name: Terraform (AWS) e manifestos do Kubernetes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Formatação e validação do Terraform
+        working-directory: infra/aws
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate
+
+      - name: Conferir os manifestos do Kubernetes
+        run: |
+          pip install -q pyyaml
+          python infra/k8s/conferir-manifestos.py
+
+  seguranca:
+    name: Segurança
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
 
@@ -83,12 +278,10 @@ jobs:
           java-version: '21'
           cache: maven
 
-      # Sem chave da NVD a consulta e limitada e cai com frequencia por
-      # tempo esgotado, o que quebraria o build por motivo que nao e nosso.
-      # Roda mesmo assim, para o relatorio existir, mas nao trava a entrega.
-      # Cadastre NVD_API_KEY nos secrets e troque para false quando quiser
-      # que vulnerabilidade alta pare o build.
-      - name: Dependencias do backend
+      # Sem chave da NVD a consulta é limitada e cai com frequência por tempo
+      # esgotado, o que quebraria o build por motivo que não é nosso. Roda
+      # mesmo assim, para o relatório existir, mas não trava a entrega.
+      - name: Dependências da API
         working-directory: backend
         continue-on-error: true
         run: >
@@ -98,8 +291,15 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: '24'
 
-      - name: Dependencias da web
+      - name: Dependências da web
         working-directory: web
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
+
+      # Segredo que escapou para o código é o erro mais caro de desfazer:
+      # depois do push, ele fica no histórico para sempre.
+      - name: Procurar segredo no código
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
