@@ -38,6 +38,10 @@ const nextConfig = {
               `connect-src 'self' ${api} https:`,
               "media-src 'self' blob: https:",
               "font-src 'self'",
+              // O único iframe permitido é o trailer, e só pelo domínio do
+              // YouTube que não grava cookie antes do play.
+              'frame-src https://www.youtube-nocookie.com',
+              "manifest-src 'self'",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
