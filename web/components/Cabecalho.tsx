@@ -48,7 +48,7 @@ export function Cabecalho() {
             {nome}
           </Link>
           <nav className="navegacao">
-            <Link href="/" className={caminho === '/' ? 'ativo' : ''}>
+            <Link href="/" className={`nav-catalogo ${caminho === '/' ? 'ativo' : ''}`}>
               Catálogo
             </Link>
             <Link href="/casa" className={caminho.startsWith('/casa') ? 'ativo' : ''}>
@@ -108,8 +108,8 @@ function FaixaDeDemonstracao() {
 
   return (
     <div className="faixa-demonstracao">
-      Ambiente de demonstração. O catálogo e fictício, o vídeo e um arquivo de teste e nenhuma
-      cobrança e feita de verdade.
+      Ambiente de demonstração. O catálogo é fictício, o vídeo é um arquivo de teste e nenhuma
+      cobrança é feita de verdade.
     </div>
   );
 }

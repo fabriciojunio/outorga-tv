@@ -120,7 +120,7 @@ async function chamar<T>(caminho: string, opcoes: Opcoes = {}): Promise<T> {
     const erro = corpo as ErroDaApi;
     throw new FalhaDaApi(
       erro?.codigo ?? 'ERRO',
-      erro?.mensagem ?? 'Nao foi possível completar a operação',
+      erro?.mensagem ?? 'Não foi possível completar a operação',
       resposta.status,
       erro?.detalhes ?? {},
     );

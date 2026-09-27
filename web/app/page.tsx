@@ -50,22 +50,11 @@ export default function Vitrine() {
     <>
       <section className="abertura">
         <div className="envolucro">
-          <h1>Seu catálogo no ar, com o direito de exibição no lugar certo</h1>
-          <p>
-            Cada título aqui só aparece porque existe uma licença vigente por trás dele. Quando o
-            contrato vence, o sistema tira do ar sozinho, sem depender de alguém lembrar.
-          </p>
-          <div className="acoes">
-            <a href="#planos" className="botao">
-              Ver planos
-            </a>
-            <Link href="/entrar" className="botao secundario">
-              Já sou assinante
-            </Link>
-          </div>
-
-          {/* As três portas deste endereço, para ninguém cair no lugar errado. */}
-          <nav className="entradas" aria-label="Por onde começar">
+          {/*
+            As três portas deste endereço, logo no topo, para ninguém cair no
+            lugar errado: quem é da família acha a entrada sem rolar a tela.
+          */}
+          <nav className="entradas entradas-topo" aria-label="Por onde começar">
             <Link href="/casa" className="entrada">
               <strong>Entrar no Outorga TV da família</strong>
               <span>Novelas, filmes, canais ao vivo e jogos. Entre com o seu número e a sua senha.</span>
@@ -79,6 +68,20 @@ export default function Vitrine() {
               <span>O serviço de streaming para quem já tem conteúdo e direito de exibição.</span>
             </a>
           </nav>
+
+          <h1>Seu catálogo no ar, com o direito de exibição no lugar certo</h1>
+          <p>
+            Cada título aqui só aparece porque existe uma licença vigente por trás dele. Quando o
+            contrato vence, o sistema tira do ar sozinho, sem depender de alguém lembrar.
+          </p>
+          <div className="acoes">
+            <a href="#planos" className="botao">
+              Ver planos
+            </a>
+            <Link href="/entrar" className="botao secundario">
+              Já sou assinante
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -104,11 +107,11 @@ export default function Vitrine() {
           </div>
 
           {erro && <div className="aviso erro">{erro}</div>}
-          {carregando && <p className="carregando">Carregando o catalogo...</p>}
+          {carregando && <p className="carregando">Carregando o catálogo...</p>}
 
           {!carregando && titulos.length === 0 && (
             <p className="fraco">
-              Nada por aqui ainda. Se você e o operador, cadastre a licença e publique o primeiro
+              Nada por aqui ainda. Se você é o operador, cadastre a licença e publique o primeiro
               título pelo painel.
             </p>
           )}
@@ -122,7 +125,7 @@ export default function Vitrine() {
                   <div className="detalhe">
                     {[
                       titulo.ano,
-                      titulo.tipo === 'SERIE' ? 'Serie' : duracaoLegivel(titulo.duracaoSegundos),
+                      titulo.tipo === 'SERIE' ? 'Série' : duracaoLegivel(titulo.duracaoSegundos),
                     ]
                       .filter(Boolean)
                       .join(' · ')}
@@ -176,7 +179,7 @@ export default function Vitrine() {
             ))}
           </div>
           <p className="apagado" style={{ marginTop: 18 }}>
-            Precos definidos pelo operador do serviço. Cancelamento a qualquer momento, com acesso
+            Preços definidos pelo operador do serviço. Cancelamento a qualquer momento, com acesso
             garantido até o fim do período já pago.
           </p>
         </div>
