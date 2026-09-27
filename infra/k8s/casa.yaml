@@ -1,0 +1,160 @@
+# Servidor do modo "Em casa" num Kubernetes caseiro (k3s num mini PC, num
+# NAS ou num Raspberry Pi 5). Aplicar com:
+#   kubectl apply -f infra/k8s/casa.yaml
+# e preencher o Secret antes (os valores aqui são marcadores, nunca reais):
+#   kubectl -n outorga-casa create secret generic outorga-casa-segredos \
+#     --from-literal=TMDB_TOKEN=... --from-literal=CASA_SEGREDO=... \
+#     --from-literal=CASA_USUARIOS='[...]' --dry-run=client -o yaml | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: outorga-casa
+  labels:
+    # Política de segurança de pod no nível mais restrito.
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: outorga-casa-segredos
+  namespace: outorga-casa
+type: Opaque
+stringData:
+  TMDB_TOKEN: trocar
+  CASA_SEGREDO: trocar-por-pelo-menos-32-caracteres-aleatorios
+  CASA_USUARIOS: '[]'
+---
+# O acervo (SQLite) precisa sobreviver à troca de pod.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: outorga-casa-acervo
+  namespace: outorga-casa
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Os vídeos: apontar para o volume onde estão os filmes (NFS do NAS, disco
+# local do nó). Só leitura: o servidor nunca escreve na pasta de vídeos.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: outorga-casa-videos
+  namespace: outorga-casa
+spec:
+  accessModes: [ReadOnlyMany]
+  resources:
+    requests:
+      storage: 500Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outorga-casa
+  namespace: outorga-casa
+spec:
+  # Uma réplica só, de propósito: o SQLite do acervo é de um processo. Duas
+  # réplicas brigariam pelo mesmo arquivo.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: outorga-casa
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: outorga-casa
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: servidor
+          image: ghcr.io/fabriciojunio/outorga-casa:1.0.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: CASA_BANCO
+              value: /dados/casa.db
+            - name: BIBLIOTECA_DIR
+              value: /videos
+            - name: TMDB_TOKEN
+              valueFrom:
+                secretKeyRef: { name: outorga-casa-segredos, key: TMDB_TOKEN }
+            - name: CASA_SEGREDO
+              valueFrom:
+                secretKeyRef: { name: outorga-casa-segredos, key: CASA_SEGREDO }
+            - name: CASA_USUARIOS
+              valueFrom:
+                secretKeyRef: { name: outorga-casa-segredos, key: CASA_USUARIOS }
+          readinessProbe:
+            httpGet: { path: /api/casa/vivo, port: 3000 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/casa/vivo, port: 3000 }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 100m, memory: 192Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - { name: acervo, mountPath: /dados }
+            - { name: videos, mountPath: /videos, readOnly: true }
+            - { name: temporario, mountPath: /tmp }
+      volumes:
+        - name: acervo
+          persistentVolumeClaim: { claimName: outorga-casa-acervo }
+        - name: videos
+          persistentVolumeClaim: { claimName: outorga-casa-videos, readOnly: true }
+        - name: temporario
+          emptyDir: {}
+---
+# NodePort 30300: celular e TV entram por http://<ip-do-nó>:30300/casa.
+apiVersion: v1
+kind: Service
+metadata:
+  name: outorga-casa
+  namespace: outorga-casa
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: outorga-casa
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30300
+---
+# Entrada só da rede de casa, e saída só para o que o servidor usa (TMDB,
+# YouTube e ESPN, todos em https, e DNS).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: outorga-casa
+  namespace: outorga-casa
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: outorga-casa
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - ipBlock: { cidr: 192.168.0.0/16 }
+        - ipBlock: { cidr: 10.0.0.0/8 }
+      ports:
+        - { port: 3000, protocol: TCP }
+  egress:
+    - ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+        - { port: 443, protocol: TCP }

@@ -41,5 +41,31 @@ services:
     ports:
       - "8080:8080"
 
+  # Servidor do modo "Em casa". Fica num perfil à parte porque não depende
+  # da API nem do banco acima:
+  #   PASTA_DE_VIDEOS=/caminho/dos/filmes docker compose --profile casa up -d
+  # Os segredos (TMDB_TOKEN, CASA_SEGREDO, CASA_USUARIOS) vêm do web/.env.local.
+  casa:
+    profiles: [casa]
+    build:
+      context: ./web
+    container_name: outorga-casa
+    env_file: ./web/.env.local
+    environment:
+      CASA_BANCO: /dados/casa.db
+      BIBLIOTECA_DIR: /videos
+    ports:
+      - "3000:3000"
+    volumes:
+      - acervo-da-casa:/dados
+      - ${PASTA_DE_VIDEOS:-./videos}:/videos:ro
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   dados-do-banco:
+  acervo-da-casa:

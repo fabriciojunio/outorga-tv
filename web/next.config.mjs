@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // Só na imagem Docker: o standalone junta o servidor e apenas as
+  // dependências usadas, e a imagem final cai de ~1 GB para ~200 MB. Na
+  // Vercel e no PC de casa o build segue o normal.
+  output: process.env.NEXT_SAIDA === 'standalone' ? 'standalone' : undefined,
+
   // Source map em produção entrega o código original para qualquer um que
   // abrir o inspetor. Não há ganho que compense.
   productionBrowserSourceMaps: false,
