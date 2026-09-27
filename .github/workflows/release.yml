@@ -50,11 +50,16 @@ jobs:
           cp app/build/outputs/apk/celular/release/app-celular-release.apk ../saida/OutorgaTV-celular.apk
           cp app/build/outputs/apk/tv/release/app-tv-release.apk ../saida/OutorgaTV-tv.apk
 
+      # keytool vem com o próprio Java, então não depende de qual build-tools
+      # o runner tem. Mostra o certificado no log e exige que seja o oficial.
       - name: Conferir a assinatura
         run: |
-          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)
           for apk in saida/*.apk; do
-            $apksigner verify --print-certs "$apk" | grep "Signer #1 certificate DN"
+            echo "== $apk"
+            certificado=$(keytool -printcert -jarfile "$apk")
+            echo "$certificado" | head -4
+            echo "$certificado" | grep -q "CN=Outorga TV" \
+              || { echo "::error::$apk não está assinado com a chave oficial"; exit 1; }
           done
 
       - name: Publicar o Release
