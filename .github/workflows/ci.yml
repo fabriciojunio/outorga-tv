@@ -208,8 +208,6 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
-
       - uses: gradle/actions/setup-gradle@v4
 
       # O lint trava o build em erro. Sem a chave oficial (em pull request de
@@ -298,7 +296,12 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
       # Segredo que escapou para o código é o erro mais caro de desfazer:
-      # depois do push, ele fica no histórico para sempre.
+      # depois do push, ele fica no histórico para sempre. O histórico inteiro
+      # precisa vir no checkout, senão o gitleaks varre zero bytes e reprova.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
       - name: Procurar segredo no código
         uses: gitleaks/gitleaks-action@v2
         env:

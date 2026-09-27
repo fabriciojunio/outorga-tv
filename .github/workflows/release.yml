@@ -28,7 +28,6 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
 
       # Sem a chave oficial, não publica: APK assinado com outra chave não

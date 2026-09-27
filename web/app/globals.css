@@ -1122,6 +1122,10 @@ a.provedor:focus-visible {
   margin-top: 30px;
 }
 
+.entradas-topo {
+  margin: 0 0 42px;
+}
+
 .entrada {
   display: flex;
   flex-direction: column;
@@ -1208,12 +1212,27 @@ a.provedor:focus-visible {
 
 @media (max-width: 640px) {
   .cabecalho .envolucro {
-    gap: 14px;
+    gap: 12px;
+  }
+
+  .marca {
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
   }
 
   .navegacao {
-    gap: 14px;
+    gap: 12px;
     font-size: 13.5px;
+  }
+
+  .navegacao a {
+    white-space: nowrap;
+  }
+
+  /* A marca já leva ao catálogo; no celular o link repetido só aperta a barra. */
+  .nav-catalogo {
+    display: none;
   }
 
   .grade-titulos {
