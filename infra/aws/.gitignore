@@ -1,0 +1,6 @@
+# O estado do Terraform guarda os segredos em texto: nunca vai para o Git.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl.bak

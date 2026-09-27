@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Avisos que são escolha consciente, cada um com o motivo. -->
+<lint>
+    <!-- O PC de casa responde por http num IP da rede local, que muda de
+         casa para casa e não dá para listar no arquivo de rede. O servidor
+         da internet é sempre https. -->
+    <issue id="InsecureBaseConfiguration" severity="ignore" />
+    <!-- O app é só em português; texto montado no código não vai ser traduzido. -->
+    <issue id="SetTextI18n" severity="ignore" />
+    <!-- A versão de TV é travada em paisagem de propósito: TV não gira. -->
+    <issue id="DiscouragedApi" severity="ignore" />
+    <!-- O ícone tem fundo cheio porque é o mesmo do site, e fundo escuro é a marca. -->
+    <issue id="IconLauncherShape" severity="ignore" />
+</lint>

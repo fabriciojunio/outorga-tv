@@ -13,6 +13,13 @@ def chave = [
 ]
 def temChave = chave.arquivo && new File(chave.arquivo).exists() && chave.senha
 
+// A versão vem da tag do release (-PversaoDoApp=1.2.3). O código de versão,
+// que é o que o Android compara para aceitar uma atualização, sai dela:
+// 1.2.3 vira 10203. Sempre cresce, então o APK novo instala por cima.
+def versaoDoApp = (project.findProperty('versaoDoApp') ?: '1.0.0').toString()
+def partes = versaoDoApp.tokenize('.').collect { it.replaceAll('[^0-9]', '') as int }
+def codigoDaVersao = partes[0] * 10000 + (partes.size() > 1 ? partes[1] : 0) * 100 + (partes.size() > 2 ? partes[2] : 0)
+
 android {
     namespace = 'br.com.outorga.casa'
     compileSdk = 35
@@ -22,8 +29,8 @@ android {
         // Android 6: cobre TV Box e celular antigo, que é o que tem em muita casa.
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
-        versionName = '1.0.0'
+        versionCode = codigoDaVersao
+        versionName = versaoDoApp
 
         // Endereço usado fora de casa, quando o PC não é achado na rede.
         buildConfigField 'String', 'ENDERECO_INTERNET', '"https://outorga-tv.vercel.app"'

@@ -1,0 +1,14 @@
+# Segredo e dado local nunca entram na imagem: vêm por variável e volume.
+.env
+.env.local
+.env.*.local
+.dados/
+node_modules/
+.next/
+test-results/
+playwright-report/
+e2e/
+testes/
+*.tsbuildinfo
+.vercel/
+Dockerfile

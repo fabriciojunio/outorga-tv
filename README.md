@@ -35,6 +35,20 @@ Para ver o gate de conteúdo funcionando: entre no painel com
 `dono@cineserra.com.br`, rescinda a licença de um título publicado e volte ao
 catálogo. O título sai do ar sem que ninguém o tenha despublicado.
 
+## Modo "Em casa"
+
+O mesmo site tem, em `/casa`, uma central de TV para a família: os vídeos do
+computador de casa tocando no celular e na TV, filmes, séries e novelas do
+TMDB separados por serviço, canais ao vivo que passam aqui dentro e os jogos
+do dia com placar. Tem app de Android para celular e para Android TV (os
+APKs estão nos [Releases](https://github.com/fabriciojunio/outorga/releases/latest)),
+e as setas do controle remoto andam pela tela.
+
+O catálogo fica guardado num SQLite local: a tela lê do banco e só vai ao
+TMDB quando falta, e um sincronizador mantém tudo atualizado por trás.
+Como funciona, como instalar e onde mexer: [docs/CASA.md](docs/CASA.md).
+Guia de uso para quem vai assistir: [docs/GUIA-DA-FAMILIA.md](docs/GUIA-DA-FAMILIA.md).
+
 ## O que já funciona
 
 - Multi-tenant: um servidor atende vários clientes, cada um com marca, catálogo,
