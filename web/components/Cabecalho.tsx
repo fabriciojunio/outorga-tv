@@ -15,9 +15,14 @@ export function Cabecalho() {
   const [entrou, setEntrou] = useState(false);
   const [operador, setOperador] = useState(false);
 
+  const naCasa = caminho.startsWith('/casa');
+
   useEffect(() => {
+    // No modo de casa esta barra nem aparece, e a API da plataforma pode não
+    // estar de pé no PC de casa: não há por que chamá-la.
+    if (naCasa) return;
     vitrine.identidade().then(setIdentidade).catch(() => setIdentidade(null));
-  }, []);
+  }, [naCasa]);
 
   useEffect(() => {
     const sessao = sessaoGuardada();
@@ -30,6 +35,10 @@ export function Cabecalho() {
 
   const nome = identidade?.nome ?? 'Outorga TV';
 
+  // O modo de casa tem a barra dele. Esta aqui, com "Entrar" e "Painel" da
+  // plataforma, só confundiria quem está no sofá com o controle na mão.
+  if (naCasa) return null;
+
   return (
     <>
       <header className="cabecalho">
@@ -41,6 +50,9 @@ export function Cabecalho() {
           <nav className="navegacao">
             <Link href="/" className={caminho === '/' ? 'ativo' : ''}>
               Catálogo
+            </Link>
+            <Link href="/casa" className={caminho.startsWith('/casa') ? 'ativo' : ''}>
+              Em casa
             </Link>
             {operador && (
               <Link href="/painel" className={caminho.startsWith('/painel') ? 'ativo' : ''}>
@@ -70,7 +82,8 @@ export function Cabecalho() {
           </nav>
         </div>
       </header>
-      <FaixaDeDemonstracao />
+      {/* No modo de casa nada é fictício: o catálogo é o do TMDB e o vídeo é o do seu PC. */}
+      {!caminho.startsWith('/casa') && <FaixaDeDemonstracao />}
     </>
   );
 }

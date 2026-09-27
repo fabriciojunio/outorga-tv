@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Cabecalho } from '@/components/Cabecalho';
+import { Rodape } from '@/components/Rodape';
 
 export const metadata: Metadata = {
   title: 'Outorga TV',
   description: 'Plataforma de streaming white-label com controle de direitos de exibição',
   // O arquivo app/icon.svg vira o favicon sozinho no Next; declarar aqui
   // serve para o caminho não sumir numa limpeza de pasta sem ninguém notar.
-  icons: { icon: '/icon.svg' },
+  icons: { icon: '/icon.svg', apple: '/icones/180.png' },
+  appleWebApp: { capable: true, title: 'Outorga TV', statusBarStyle: 'black-translucent' },
   robots: {
     // Enquanto o serviço é de demonstração, não há motivo para indexar.
     index: false,
@@ -21,15 +23,7 @@ export default function LayoutRaiz({ children }: { children: React.ReactNode }) 
       <body>
         <Cabecalho />
         <main>{children}</main>
-        <footer className="rodape">
-          <div className="envolucro espalha">
-            <span>
-              Outorga TV. Plataforma de streaming. O catálogo e o direito de exibição são do
-              cliente.
-            </span>
-            <span className="mono">v0.1.0</span>
-          </div>
-        </footer>
+        <Rodape />
       </body>
     </html>
   );

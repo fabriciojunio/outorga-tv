@@ -1,14 +1,18 @@
 {
   "name": "outorga-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Vitrine, player e painel do Outorga TV",
+  "description": "Vitrine, player e painel do Outorga TV, e o modo Em casa",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "casa": "next build && next start -H 0.0.0.0 -p 3000",
+    "casa:usuario": "node scripts/casa-usuario.mjs",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "hls.js": "^1.7.1",
@@ -17,9 +21,11 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.7"
   }
 }
