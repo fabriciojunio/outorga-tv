@@ -25,3 +25,4 @@ out/
 coverage/
 dependency-check-report.html
 .vercel
+!android/gradle/wrapper/gradle-wrapper.jar

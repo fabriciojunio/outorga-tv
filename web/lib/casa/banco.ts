@@ -49,12 +49,17 @@ function abrirSqlite(): Banco {
   // Pedido direto ao Node, o módulo vem sem passar pelo empacotador.
   const { DatabaseSync } = process.getBuiltinModule('node:sqlite') as typeof import('node:sqlite');
 
-  // O comentário impede o Turbopack de achar que precisa empacotar o projeto
-  // inteiro por causa de um caminho que só se sabe em tempo de execução.
-  const arquivo = path.resolve(
-    /*turbopackIgnore: true*/ process.env.CASA_BANCO ?? path.join(process.cwd(), '.dados', 'casa.db'),
-  );
-  mkdirSync(path.dirname(arquivo), { recursive: true });
+  // Na Vercel só /tmp aceita gravação. Lá o banco dura enquanto a função
+  // estiver quente, o que basta: é cache, e a fonte da verdade é o TMDB.
+  const padrao = process.env.VERCEL ? '/tmp/outorga-casa.db' : path.join(process.cwd(), '.dados', 'casa.db');
+  const configurado = process.env.CASA_BANCO || padrao;
+  let arquivo = ':memory:';
+  if (configurado !== ':memory:') {
+    // O comentário impede o Turbopack de achar que precisa empacotar o
+    // projeto inteiro por causa de um caminho que só existe em execução.
+    arquivo = path.resolve(/*turbopackIgnore: true*/ configurado);
+    mkdirSync(path.dirname(arquivo), { recursive: true });
+  }
   const db = new DatabaseSync(arquivo);
 
   // WAL deixa a leitura da página correr em paralelo com a gravação do

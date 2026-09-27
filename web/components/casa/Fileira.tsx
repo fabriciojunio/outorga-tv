@@ -43,7 +43,8 @@ export function Fileira({ titulo, itens }: { titulo: string; itens: ItemDaFileir
               <span className="cartaz-progresso" style={{ width: `${Math.round(item.progresso * 100)}%` }} />
             )}
             <span className="cartaz-legenda">
-              <span className="nome">{item.nome}</span>
+              {/* Sem capa, o nome já está no meio do cartaz; embaixo fica só o detalhe. */}
+              {item.capa && <span className="nome">{item.nome}</span>}
               {item.detalhe && <span className="detalhe">{item.detalhe}</span>}
             </span>
           </Link>

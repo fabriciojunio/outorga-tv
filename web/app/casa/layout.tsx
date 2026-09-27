@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { BotaoSair } from '@/components/casa/BotaoSair';
 import { MenuDaCasa } from '@/components/casa/MenuDaCasa';
 import { NavegacaoPorControle } from '@/components/casa/NavegacaoPorControle';
+import { RodapeDoApp } from '@/components/casa/RodapeDoApp';
 import { primeiroNome, quemEsta } from '@/lib/casa/quem';
 
 export const metadata: Metadata = {
@@ -48,6 +49,7 @@ export default async function LayoutDaCasa({ children }: { children: React.React
         {sessao && <MenuDaCasa />}
       </header>
       {children}
+      <RodapeDoApp />
       <p className="casa-credito envolucro">
         Dados de filmes e séries fornecidos pelo{' '}
         <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">
