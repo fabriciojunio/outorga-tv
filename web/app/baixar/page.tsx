@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: 'Como instalar o Outorga TV no celular, na TV e no computador',
 };
 
-const RELEASES = 'https://github.com/fabriciojunio/outorga/releases/latest/download';
+const RELEASES = 'https://github.com/fabriciojunio/outorga-tv/releases/latest/download';
 
 const PASSOS = [
   {
