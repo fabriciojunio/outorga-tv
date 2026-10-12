@@ -58,12 +58,16 @@ public class CobrancaWebhookController {
         if (!configuracao.emDemonstracao()) {
             return ResponseEntity.notFound().build();
         }
+        if (!referencia.matches("[A-Za-z0-9_-]{1,120}") || valor < 0) {
+            return ResponseEntity.badRequest().body("Referência ou valor inválido");
+        }
+        String nonce = java.util.UUID.randomUUID().toString().replace("-", "");
         var reais = String.format(Locale.of("pt", "BR"), "R$ %,.2f", valor / 100.0);
         var html = """
                 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1">
                 <title>Pagamento simulado</title>
-                <style>
+                <style nonce="%s">
                   body{background:#0d0f14;color:#e8eaee;font:16px system-ui,sans-serif;
                        display:grid;place-items:center;min-height:100vh;margin:0}
                   .cartao{background:#161a22;border:1px solid #262c38;border-radius:14px;
@@ -81,12 +85,14 @@ public class CobrancaWebhookController {
                 <h1>Pagamento simulado</h1>
                 <p>Cobranca <code>%s</code></p>
                 <div class="valor">%s</div>
-                <button class="ok" onclick="responder('CONFIRMADO')">Confirmar pagamento</button>
-                <button class="nao" onclick="responder('RECUSADO')">Simular recusa</button>
+                <button class="ok" id="confirmar">Confirmar pagamento</button>
+                <button class="nao" id="recusar">Simular recusa</button>
                 <p class="aviso">Ambiente de demonstracao. Nenhum valor e cobrado
                 e nenhum dado de cartao e pedido.</p>
                 <p id="saida"></p></div>
-                <script>
+                <script nonce="%s">
+                document.getElementById('confirmar').addEventListener('click', () => responder('CONFIRMADO'));
+                document.getElementById('recusar').addEventListener('click', () => responder('RECUSADO'));
                 async function responder(evento){
                   const r = await fetch('/api/v1/webhooks/pagamento',{
                     method:'POST',
@@ -98,7 +104,12 @@ public class CobrancaWebhookController {
                     r.ok ? 'Pronto. Pode voltar para o aplicativo.' : ('Falhou: ' + JSON.stringify(corpo));
                 }
                 </script></body></html>
-                """.formatted(referencia, reais, referencia, valor);
-        return ResponseEntity.ok(html);
+                """.formatted(nonce, referencia, reais, nonce, referencia, valor);
+        return ResponseEntity.ok()
+                .header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; "
+                        + "base-uri 'none'; form-action 'none'; connect-src 'self'; "
+                        + "script-src 'nonce-" + nonce + "'; style-src 'nonce-" + nonce + "'")
+                .header("Cache-Control", "no-store")
+                .body(html);
     }
 }

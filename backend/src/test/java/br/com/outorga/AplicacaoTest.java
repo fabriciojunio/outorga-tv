@@ -68,6 +68,35 @@ class AplicacaoTest {
     private static String tituloId;
 
     @Test
+    @Order(7)
+    void perfilInexistenteNaoIgnoraControleParental() throws Exception {
+        mvc.perform(post("/api/v1/reproducao/token")
+                        .header("Authorization", "Bearer " + tokenDoEspectador)
+                        .header("X-Outorga-Dispositivo", "aparelho-perfil-invalido")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("tituloId", tituloId,
+                                "perfilId", java.util.UUID.randomUUID().toString(), "tipoDeDispositivo", "WEB"))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void checkoutRejeitaInjecaoEEntregaCspCompativel() throws Exception {
+        mvc.perform(get("/api/v1/publico/checkout-simulado").param("referencia", "</script><script>alert(1)</script>")
+                        .param("valor", "100"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/publico/checkout-simulado").param("referencia", "sim-teste").param("valor", "-1"))
+                .andExpect(status().isBadRequest());
+        var resposta = mvc.perform(get("/api/v1/publico/checkout-simulado")
+                        .param("referencia", "sim-teste").param("valor", "1490"))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        String csp = resposta.getHeader("Content-Security-Policy");
+        assertThat(csp).contains("connect-src 'self'", "script-src 'nonce-");
+        String nonce = csp.split("script-src 'nonce-")[1].split("'")[0];
+        assertThat(resposta.getContentAsString()).contains("<script nonce=\"" + nonce + "\"", "<style nonce=\"" + nonce + "\"")
+                .doesNotContain("onclick=");
+    }
+
+    @Test
     @Order(1)
     @DisplayName("a carga de demonstração deixou o serviço no ar")
     void identidadeDoServico() throws Exception {

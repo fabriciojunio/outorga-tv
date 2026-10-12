@@ -286,6 +286,20 @@ class CasosDeUsoTest {
         }
 
         @Test
+        void perfilInexistenteOuDeOutraContaNaoAutorizaNemRegistraAparelho() {
+            var deOutraConta = Perfil.criar(UUID.randomUUID(), "Outra conta", null, false, 0).valorOuFalha();
+            cenario.perfis.salvar(deOutraConta);
+            for (var id : java.util.List.of(UUID.randomUUID(), deOutraConta.id())) {
+                var saida = caso(cenario.relogio).executar(cenario.comoAssinante(),
+                        new AutorizarReproducao.Entrada(cenario.filme.id(), null, null, id,
+                                "aparelho-isolado", TipoDeDispositivo.WEB, "Teste", "BR", Qualidade.HD));
+                assertThat(saida.falha().orElseThrow().codigo()).isEqualTo("NAO_ENCONTRADO");
+                assertThat(cenario.sessoes.dados).isEmpty();
+                assertThat(cenario.dispositivos.doUsuario(cenario.assinante.id())).isEmpty();
+            }
+        }
+
+        @Test
         @DisplayName("autoriza, registra o aparelho e abre a sessão")
         void autorizaEabreSessao() {
             var saida = caso(cenario.relogio).executar(cenario.comoAssinante(), pedidoPadrao());
