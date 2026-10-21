@@ -1,14 +1,14 @@
 name: CI
 
-# Nada entra na main sem passar por aqui. Cada parte do sistema é provada do
+# Nada entra na produção sem passar por aqui. Cada parte do sistema é provada do
 # jeito que roda de verdade: a API contra PostgreSQL, o modo de casa com o
 # servidor de pé tocando vídeo, a imagem Docker subindo e respondendo, e os
 # APKs compilados e conferidos.
 on:
   push:
-    branches: [main]
+    branches: ["produção", "homologação"]
   pull_request:
-    branches: [main]
+    branches: ["produção", "homologação"]
 
 # Um push novo no mesmo branch cancela a execução anterior. Sem isso, uma
 # sequência de commits enfileira builds que já nasceram desatualizados.
