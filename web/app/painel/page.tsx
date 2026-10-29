@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   painel,
@@ -17,6 +18,7 @@ import {
  * manhã precisa ver o problema antes de ver a lista.
  */
 export default function Painel() {
+  const router = useRouter();
   const [licencas, setLicencas] = useState<LicencaVista[]>([]);
   const [titulos, setTitulos] = useState<TituloNoPainel[]>([]);
   const [aVencer, setAVencer] = useState<LicencaAVencer[]>([]);
@@ -25,11 +27,11 @@ export default function Painel() {
 
   useEffect(() => {
     if (!sessaoGuardada()) {
-      window.location.href = '/entrar?voltar=/painel';
+      router.replace('/entrar?voltar=/painel');
       return;
     }
     void recarregar();
-  }, []);
+  }, [router]);
 
   async function recarregar() {
     setCarregando(true);
