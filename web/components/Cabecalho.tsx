@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useNoNavegador } from '@/lib/useNoNavegador';
 import { encerrarSessao, sessaoGuardada, vitrine, type Identidade } from '@/lib/api';
 
 /**
@@ -12,8 +13,6 @@ import { encerrarSessao, sessaoGuardada, vitrine, type Identidade } from '@/lib/
 export function Cabecalho() {
   const caminho = usePathname();
   const [identidade, setIdentidade] = useState<Identidade | null>(null);
-  const [entrou, setEntrou] = useState(false);
-  const [operador, setOperador] = useState(false);
 
   const naCasa = caminho.startsWith('/casa');
 
@@ -24,14 +23,21 @@ export function Cabecalho() {
     vitrine.identidade().then(setIdentidade).catch(() => setIdentidade(null));
   }, [naCasa]);
 
-  useEffect(() => {
-    const sessao = sessaoGuardada();
-    setEntrou(sessao !== null);
-    setOperador(
-      sessao?.papeis?.some((p) => ['DONO', 'EDITOR', 'SUPORTE', 'ADMIN_PLATAFORMA'].includes(p)) ??
-        false,
-    );
-  }, [caminho]);
+  // Relido a cada renderização, e a navegação renderiza de novo: entrar ou sair
+  // aparece na troca de página, como antes. Em outra aba, pelo evento storage.
+  const situacao = useNoNavegador(
+    () => {
+      const sessao = sessaoGuardada();
+      const opera =
+        sessao?.papeis?.some((p) => ['DONO', 'EDITOR', 'SUPORTE', 'ADMIN_PLATAFORMA'].includes(p)) ?? false;
+      return `${sessao !== null}|${opera}`;
+    },
+    'false|false',
+    true,
+  );
+  const [entrouTexto, operadorTexto] = situacao.split('|');
+  const entrou = entrouTexto === 'true';
+  const operador = operadorTexto === 'true';
 
   const nome = identidade?.nome ?? 'Outorga TV';
 
@@ -71,6 +77,8 @@ export function Cabecalho() {
                   className="botao secundario"
                   onClick={() => {
                     encerrarSessao();
+                    // Recarga completa de propósito: ao sair, nada da sessão fica na memória da página.
+                    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                     window.location.href = '/';
                   }}
                 >
@@ -96,15 +104,8 @@ export function Cabecalho() {
  * operação. Some sozinha quando o ambiente sai do modo de demonstração.
  */
 function FaixaDeDemonstracao() {
-  const [mostrar, setMostrar] = useState(false);
-
-  useEffect(() => {
-    // O modo aparece no próprio comportamento do checkout, mas para a faixa
-    // basta a variável de ambiente do build.
-    setMostrar(process.env.NEXT_PUBLIC_DEMONSTRACAO !== 'false');
-  }, []);
-
-  if (!mostrar) return null;
+  // A variável NEXT_PUBLIC_ é fixada no build, igual no servidor e no navegador.
+  if (process.env.NEXT_PUBLIC_DEMONSTRACAO === 'false') return null;
 
   return (
     <div className="faixa-demonstracao">

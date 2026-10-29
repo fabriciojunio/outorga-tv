@@ -76,6 +76,9 @@ jobs:
       - name: Conferir os tipos
         run: npm run typecheck
 
+      - name: Lint
+        run: npm run lint
+
       - name: Testes de unidade
         run: npm test
 

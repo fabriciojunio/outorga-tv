@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { Player } from '@/components/Player';
@@ -22,6 +23,7 @@ import {
  * chamado; quem lê "você atingiu o limite de 2 telas" resolve sozinho.
  */
 export default function Assistir({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter();
   const { id } = use(params);
 
   const [titulo, setTitulo] = useState<TituloDetalhado | null>(null);
@@ -44,7 +46,7 @@ export default function Assistir({ params }: { params: Promise<{ id: string }> }
     setRecusa(null);
     setPlay(null);
     if (!sessaoGuardada()) {
-      window.location.href = `/entrar?voltar=${encodeURIComponent(`/assistir/${id}`)}`;
+      router.replace(`/entrar?voltar=${encodeURIComponent(`/assistir/${id}`)}`);
       return;
     }
     if (temporada && episodio) {
