@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useNoNavegador } from '@/lib/useNoNavegador';
 
 const ORIGEM_DO_PLAYER = 'https://www.youtube-nocookie.com';
 
@@ -17,9 +18,7 @@ const ORIGEM_DO_PLAYER = 'https://www.youtube-nocookie.com';
 export function PlayerAoVivo({ video, nome }: { video: string; nome: string }) {
   const quadro = useRef<HTMLIFrameElement>(null);
   const [bloqueado, setBloqueado] = useState(false);
-  const [origem, setOrigem] = useState<string | null>(null);
-
-  useEffect(() => setOrigem(window.location.origin), []);
+  const origem = useNoNavegador(() => window.location.origin, null);
 
   useEffect(() => {
     function aoReceber(evento: MessageEvent) {

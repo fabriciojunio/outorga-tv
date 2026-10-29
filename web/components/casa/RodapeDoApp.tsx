@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useNoNavegador } from '@/lib/useNoNavegador';
 
 type PonteDoApp = { modo(): string; configurar(): void };
 
@@ -10,12 +10,10 @@ type PonteDoApp = { modo(): string; configurar(): void };
  * No navegador comum, a ponte não existe e isto não mostra nada.
  */
 export function RodapeDoApp() {
-  const [modo, setModo] = useState<string | null>(null);
-
-  useEffect(() => {
-    const ponte = (window as unknown as { OutorgaApp?: PonteDoApp }).OutorgaApp;
-    if (ponte) setModo(ponte.modo());
-  }, []);
+  const modo = useNoNavegador(
+    () => (window as unknown as { OutorgaApp?: PonteDoApp }).OutorgaApp?.modo() ?? null,
+    null,
+  );
 
   if (!modo) return null;
   return (

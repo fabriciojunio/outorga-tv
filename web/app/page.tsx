@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
@@ -189,12 +190,13 @@ export default function Vitrine() {
 }
 
 function CartaoDePlano({ plano, destaque }: { plano: PlanoVisto; destaque: boolean }) {
+  const router = useRouter();
   const [processando, setProcessando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   async function assinar() {
     if (!sessaoGuardada()) {
-      window.location.href = `/entrar?voltar=${encodeURIComponent('/#planos')}`;
+      router.push(`/entrar?voltar=${encodeURIComponent('/#planos')}`);
       return;
     }
     setProcessando(true);

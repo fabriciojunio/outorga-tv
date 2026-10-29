@@ -1,6 +1,9 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useNoNavegador } from '@/lib/useNoNavegador';
 import {
   assinatura as apiAssinatura,
   conta,
@@ -13,33 +16,47 @@ import {
 type Perfil = { id: string; nome: string; tetoDeClassificacao: string; infantil: boolean };
 type Dispositivo = { id: string; apelido: string; tipo: string; ultimoUso: string };
 
+type DadosDaConta = { perfis: Perfil[]; dispositivos: Dispositivo[]; assinatura: AssinaturaVista | null };
+
+async function carregarConta(): Promise<DadosDaConta> {
+  const [perfis, dispositivos] = await Promise.all([conta.perfis(), conta.dispositivos()]);
+  let assinatura: AssinaturaVista | null = null;
+  try {
+    assinatura = await apiAssinatura.minha();
+  } catch {
+    // Sem assinatura a API responde erro; a tela mostra o convite para assinar.
+  }
+  return { perfis, dispositivos, assinatura };
+}
+
 export default function Conta() {
+  const router = useRouter();
   const [perfis, setPerfis] = useState<Perfil[]>([]);
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([]);
   const [assinatura, setAssinatura] = useState<AssinaturaVista | null>(null);
-  const [ativo, setAtivo] = useState<string | null>(null);
+  const perfilSalvo = useNoNavegador(perfilEscolhido, null);
+  const [perfilTocado, setAtivo] = useState<string | null>(null);
+  const ativo = perfilTocado ?? perfilSalvo;
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!sessaoGuardada()) {
-      window.location.href = '/entrar?voltar=/conta';
-      return;
-    }
-    setAtivo(perfilEscolhido());
-    void recarregar();
-  }, []);
+  function aplicar(dados: DadosDaConta) {
+    setPerfis(dados.perfis);
+    setDispositivos(dados.dispositivos);
+    setAssinatura(dados.assinatura);
+  }
 
   async function recarregar() {
-    const [p, d] = await Promise.all([conta.perfis(), conta.dispositivos()]);
-    setPerfis(p);
-    setDispositivos(d);
-    try {
-      setAssinatura(await apiAssinatura.minha());
-    } catch {
-      setAssinatura(null);
-    }
+    aplicar(await carregarConta());
   }
+
+  useEffect(() => {
+    if (!sessaoGuardada()) {
+      router.replace('/entrar?voltar=/conta');
+      return;
+    }
+    void carregarConta().then(aplicar);
+  }, [router]);
 
   async function removerAparelho(id: string) {
     try {
@@ -79,6 +96,8 @@ export default function Conta() {
     try {
       const saida = await conta.apagarConta();
       window.alert(saida.resultado);
+      // Recarga completa de propósito: nada da conta apagada fica na memória da página.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = '/';
     } catch (e) {
       setErro((e as Error).message);
@@ -123,7 +142,7 @@ export default function Conta() {
             </div>
           ) : (
             <p className="fraco">
-              Você ainda não tem assinatura. <a href="/#planos">Ver planos</a>
+              Você ainda não tem assinatura. <Link href="/#planos">Ver planos</Link>
             </p>
           )}
         </div>
