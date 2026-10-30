@@ -65,10 +65,16 @@ jobs:
       - name: Publicar o Release
         env:
           GH_TOKEN: ${{ github.token }}
+        # Tag reenviada (reescrita de histórico, por exemplo) não pode derrubar a
+        # release que já existe: nesse caso só troca os APKs pelos recém-assinados.
         run: |
-          gh release create "$GITHUB_REF_NAME" saida/*.apk \
-            --title "Outorga TV $GITHUB_REF_NAME" \
-            --notes-file docs/RELEASE.md
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" saida/*.apk --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" saida/*.apk \
+              --title "Outorga TV $GITHUB_REF_NAME" \
+              --notes-file docs/RELEASE.md
+          fi
 
   imagem:
     name: Imagem do servidor de casa
