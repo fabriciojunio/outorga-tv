@@ -100,6 +100,11 @@ public class AutorizarReproducao {
             return recusar(chamador, entrada, Falhas.naoEncontrado("Plano da assinatura"));
         }
 
+        var perfil = entrada.perfilId() == null ? null : perfis.porId(entrada.perfilId()).orElse(null);
+        if (entrada.perfilId() != null && (perfil == null || !perfil.usuarioId().equals(chamador.usuarioId()))) {
+            return recusar(chamador, entrada, Falhas.naoEncontrado("Perfil"));
+        }
+
         var dispositivo = garantirDispositivo(chamador.usuarioId(), plano, entrada, agora);
         if (dispositivo.falhou()) {
             return recusar(chamador, entrada, dispositivo.falha().orElseThrow());
@@ -109,7 +114,6 @@ public class AutorizarReproducao {
         var licenca = titulo == null || titulo.licencaId() == null
                 ? null
                 : licencas.porId(chamador.tenantId(), titulo.licencaId()).orElse(null);
-        var perfil = entrada.perfilId() == null ? null : perfis.porId(entrada.perfilId()).orElse(null);
 
         var referencia = titulo == null ? null : referenciaDoVideo(titulo, entrada);
 
